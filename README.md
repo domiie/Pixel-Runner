@@ -4,4 +4,4 @@ A simple pixel runner inspired game made for a uni course about game creation an
 
 ## Acknowledgments
 
-* [https://github.com/matiassingers/awesome-readme](https://github.com/clear-code-projects/UltimatePygameIntro)
+* [UltimatePygameIntro](https://github.com/clear-code-projects/UltimatePygameIntro)
