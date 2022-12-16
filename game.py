@@ -16,6 +16,7 @@
 # Imports
 # ---------------------------------------------------------------------------
 import pygame
+import math
 from random import randint, choice
 
 
@@ -51,9 +52,7 @@ class Player(pygame.sprite.Sprite):
             self.image = self.player_jump
         else:  # walk "animation"
             self.player_index += 0.08  # makes the transition between the two sprites smoother
-            if self.player_index >= len(self.player_walk):
-                self.player_index = 0
-            self.image = self.player_walk[int(self.player_index)]
+            self.image = self.player_walk[int(self.player_index) % 2]
 
     def update(self):
         self.player_input()
@@ -68,7 +67,7 @@ class Enemy(pygame.sprite.Sprite):
         if name == 'wasp':
             self.enemy_move = [pygame.image.load('mat/chars/wasp_01.png').convert_alpha(),
                                pygame.image.load('mat/chars/wasp_02.png').convert_alpha()]
-            y_pos = 210
+            y_pos = 220
         else:
             self.enemy_move = [pygame.image.load('mat/chars/pinkblop_01.png').convert_alpha(),
                                pygame.image.load('mat/chars/pinkblop_02.png').convert_alpha()]
@@ -80,17 +79,15 @@ class Enemy(pygame.sprite.Sprite):
 
     def enemy_animation(self):
         self.enemy_index += 0.07
-        if self.enemy_index >= len(self.enemy_move):
-            self.enemy_index = 0
-        self.image = self.enemy_move[int(self.enemy_index)]
+        self.image = self.enemy_move[int(self.enemy_index) % 2]
 
     def update(self):
         self.enemy_animation()
-        self.rect.x -= 5
+        self.rect.x -= (game_speed + 3)
         self.destroy()
 
     def destroy(self):
-        if self.rect.x <= -100:
+        if self.rect.x <= 0 - self.rect.width:
             self.kill()
 
 
@@ -100,7 +97,7 @@ def displayIntroScreen():
     welcome_text = header_font.render('Welcome!', False, '#4f719d')
     info_text_instr = normal_font.render('Use SPACE to jump and avoid incoming enemies.', False, '#585858')
     info_text_instr_2 = normal_font.render('Try to stay alive for as long as possible!', False, '#585858')
-    info_text_start = halfbold_font.render('Press SPACE to start..', False, '#4f719d')
+    info_text_start = halfbold_font.render('Press ENTER to start..', False, '#4f719d')
     info_text_exit = halfbold_font.render('Press ESC to exit..', False, '#4f719d')
 
     screen.blits([(welcome_text, welcome_text.get_rect(center=(400, 40))),
@@ -114,7 +111,7 @@ def displayIntroScreen():
 def displayGameOverScreen():
     screen.fill('#9cc2f3')
     gameover_text = header_font.render('Game Over!', False, '#4f719d')
-    info_text_start = halfbold_font.render('Press SPACE to play again', False, '#4f719d')
+    info_text_start = halfbold_font.render('Press ENTER to play again', False, '#4f719d')
     score_text = halfbold_font.render(f'Your score was: {score}', False, '#4f719d')
 
     screen.blits([(gameover_text, gameover_text.get_rect(center=(400, 50))),
@@ -125,8 +122,15 @@ def displayGameOverScreen():
 
 
 def displayGame():
-    # display background
-    screen.blit(skyBG, (0, 0))
+    # display scrolling background
+    global scroll
+    for i in range(0, tiles):
+        screen.blit(skyBG, (i * bg_width + scroll, 0))
+    scroll -= game_speed
+    if abs(scroll) > bg_width:
+        scroll = 0
+
+    # display ground platform
     screen.blit(groundBG, (0, 300))
 
     # get score
@@ -164,7 +168,9 @@ pygame.display.set_caption('Pixel Runner © Kamenská Dominika 3nAIVS')
 clock = pygame.time.Clock()     # clock object for frame rate
 start_time = 0
 score = 0                       # global variable to store score
+game_speed = 1
 
+# sound/music load and settings
 background_music = pygame.mixer.Sound('mat/sound/music_background.wav')
 background_music.play(loops=-1).set_volume(0.35)
 
@@ -193,14 +199,21 @@ player.add(Player())
 # create enemy group
 enemy_group = pygame.sprite.Group()
 
-# timer
+# timers
 enemy_timer = pygame.USEREVENT + 1
-pygame.time.set_timer(enemy_timer, 1200)     # triggers enemy_timer every 1200 ms
+pygame.time.set_timer(enemy_timer, 1400)     # triggers enemy_timer every 1400 ms
+
+difficulty_timer = pygame.USEREVENT + 2
+pygame.time.set_timer(difficulty_timer, 1000)
 
 # boolean variables
 intro_screen = True
 game_active = False
 running = True
+
+bg_width = skyBG.get_width()
+scroll = 0
+tiles = math.ceil(screenWidth / bg_width) + 1
 
 while running:
     for event in pygame.event.get():
@@ -217,14 +230,18 @@ while running:
             # enemy mechanics
             if event.type == enemy_timer:
                 enemy_group.add(Enemy(choice(['wasp', 'blop', 'blop', 'blop'])))
+
+            if event.type == difficulty_timer:
+                game_speed += 0.1
         # game start from game over screen
         else:
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
                 game_active = True
+                game_speed = 1
                 start_time = pygame.time.get_ticks()    # help variable to get the proper score
         # game start from intro screen
         if intro_screen:
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
                 intro_screen = False
                 game_active = True
 
